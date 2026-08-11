@@ -14,13 +14,17 @@
     "test": "bun test",
     "test:contract": "bun test test/contract.test.ts",
     "test:ice-credentials": "bun test test/ice-credentials.test.ts",
+    "test:token-shape": "bun test test/auth/token-shape.test.ts",
+    "test:auth": "bun test test/auth/",
     "gen:proto": "bun run scripts/gen-proto.ts",
     "migrate": "bun run scripts/migrate.ts",
     "check:schema-allowlist": "bun run scripts/check-schema-allowlist.ts"
   },
   "dependencies": {
+    "arctic": "^3.7.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.6.14",
+    "jose": "^6.2.8",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import env from "./env.ts";
+import auth from "./routes/auth.ts";
 import health from "./routes/health.ts";
 import ice from "./routes/ice.ts";
 
@@ -32,5 +33,6 @@ app.use("*", async (c, next) => {
 
 app.route("/health", health);
 app.route("/ice", ice);
+app.route("/auth", auth);
 
 export default app;
