@@ -70,7 +70,7 @@ export interface RelayResume {
 export interface RelayError {
   kind: "relay.error";
   transferId?: string;
-  code: "over-cap" | "room-full" | "expired" | "internal";
+  code: "over-cap" | "room-full" | "room-limit" | "rate-limited" | "expired" | "internal";
   message: string;
 }
 
@@ -109,7 +109,7 @@ export interface DcResume {
 export interface DcError {
   kind: "dc.error";
   transferId?: string;
-  code: "over-cap" | "room-full" | "expired" | "internal";
+  code: "over-cap" | "room-full" | "room-limit" | "rate-limited" | "expired" | "internal";
   message: string;
 }
 
@@ -282,7 +282,12 @@ function isRelayError(x: unknown): x is RelayError {
   if (o.kind !== "relay.error") return false;
   if (o.transferId !== undefined && typeof o.transferId !== "string") return false;
   if (o.transferId !== undefined && !UUID_RE.test(o.transferId)) return false;
-  if (!["over-cap", "room-full", "expired", "internal"].some((v) => v === o.code)) return false;
+  if (
+    !["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"].some(
+      (v) => v === o.code,
+    )
+  )
+    return false;
   if (typeof o.message !== "string") return false;
   for (const k of Object.keys(o)) {
     if (!["kind", "transferId", "code", "message"].includes(k)) return false;
@@ -372,7 +377,12 @@ function isDcError(x: unknown): x is DcError {
   if (o.kind !== "dc.error") return false;
   if (o.transferId !== undefined && typeof o.transferId !== "string") return false;
   if (o.transferId !== undefined && !UUID_RE.test(o.transferId)) return false;
-  if (!["over-cap", "room-full", "expired", "internal"].some((v) => v === o.code)) return false;
+  if (
+    !["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"].some(
+      (v) => v === o.code,
+    )
+  )
+    return false;
   if (typeof o.message !== "string") return false;
   for (const k of Object.keys(o)) {
     if (!["kind", "transferId", "code", "message"].includes(k)) return false;

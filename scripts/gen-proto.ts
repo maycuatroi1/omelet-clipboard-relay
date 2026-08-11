@@ -79,8 +79,21 @@ function requiredChecks(name: string, prop: Prop): string[] {
     return checks;
   }
   if (prop.enum !== undefined) {
-    const list = prop.enum.map((v) => JSON.stringify(v)).join(", ");
-    checks.push(`![${list}].some((v) => v === ${path})`);
+    const values = prop.enum.map((v) => JSON.stringify(v));
+    const oneLineList = values.join(", ");
+    const oneLineExpr = `![${oneLineList}].some((v) => v === ${path})`;
+    const singleLineLen = "  if (".length + oneLineExpr.length + ") return false;".length;
+    if (singleLineLen <= 100) {
+      checks.push(oneLineExpr);
+    } else {
+      const arrayInlinePrefix = `![${oneLineList}].some(`;
+      if (arrayInlinePrefix.length <= 100) {
+        checks.push(`${arrayInlinePrefix}\n  (v) => v === ${path},\n)`);
+      } else {
+        const itemLines = values.map((v) => `  ${v},`).join("\n");
+        checks.push(`![\n${itemLines}\n].some(\n  (v) => v === ${path},\n)`);
+      }
+    }
     return checks;
   }
   if (prop.$ref) {
@@ -178,10 +191,17 @@ function genGuard(defName: string, def: Def): string {
     if (k === "kind") continue;
     const checks = requiredChecks(k, v);
     for (const c of checks) {
-      if (required.has(k)) {
-        lines.push(`  if (${c}) return false;`);
+      const cond = required.has(k) ? c : `o.${k} !== undefined && ${c}`;
+      const singleLine = `  if (${cond}) return false;`;
+      if (!c.includes("\n") && singleLine.length <= 100) {
+        lines.push(singleLine);
       } else {
-        lines.push(`  if (o.${k} !== undefined && ${c}) return false;`);
+        lines.push("  if (");
+        for (const line of cond.split("\n")) {
+          lines.push(`    ${line}`);
+        }
+        lines.push("  )");
+        lines.push("    return false;");
       }
     }
   }

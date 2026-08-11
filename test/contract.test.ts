@@ -128,4 +128,22 @@ describe("wire protocol contract", () => {
   it("rejects object missing kind", () => {
     expect(parseMessage({ code: "ABC" })).toBeNull();
   });
+
+  it("round-trips every relay.error code from the schema enum", () => {
+    const codes = ["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"];
+    for (const code of codes) {
+      const out = parseMessage({ kind: "relay.error", code, message: "x" });
+      expect(out, `relay.error code ${code}`).not.toBeNull();
+      expect((out as { code: string }).code).toBe(code);
+    }
+  });
+
+  it("round-trips every dc.error code from the schema enum", () => {
+    const codes = ["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"];
+    for (const code of codes) {
+      const out = parseMessage({ kind: "dc.error", code, message: "x" });
+      expect(out, `dc.error code ${code}`).not.toBeNull();
+      expect((out as { code: string }).code).toBe(code);
+    }
+  });
 });

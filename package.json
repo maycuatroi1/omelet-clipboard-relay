@@ -17,6 +17,7 @@
     "test:token-shape": "bun test test/auth/token-shape.test.ts",
     "test:auth": "bun test test/auth/",
     "test:signal": "bun test test/signal/",
+    "test:relay": "bun test test/relay/",
     "gen:proto": "bun run scripts/gen-proto.ts",
     "migrate": "bun run scripts/migrate.ts",
     "check:schema-allowlist": "bun run scripts/check-schema-allowlist.ts"

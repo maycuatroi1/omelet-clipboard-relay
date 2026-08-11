@@ -176,7 +176,7 @@
       "properties": {
         "kind": { "const": "relay.error" },
         "transferId": { "$ref": "#/$defs/uuid" },
-        "code": { "enum": ["over-cap", "room-full", "expired", "internal"] },
+        "code": { "enum": ["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"] },
         "message": { "type": "string" }
       },
       "required": ["kind", "code", "message"],
@@ -251,7 +251,7 @@
       "properties": {
         "kind": { "const": "dc.error" },
         "transferId": { "$ref": "#/$defs/uuid" },
-        "code": { "enum": ["over-cap", "room-full", "expired", "internal"] },
+        "code": { "enum": ["over-cap", "room-full", "room-limit", "rate-limited", "expired", "internal"] },
         "message": { "type": "string" }
       },
       "required": ["kind", "code", "message"],

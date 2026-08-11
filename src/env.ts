@@ -13,6 +13,10 @@ const env = {
   TURN_HOST: process.env.TURN_HOST ?? "turn.clip.omelet.tech",
   COMMIT_SHA: process.env.COMMIT_SHA,
   APP_VERSION: process.env.APP_VERSION,
+  RELAY_BUFFER_TTL_MS: Number(process.env.RELAY_BUFFER_TTL_MS ?? 60_000),
+  MAX_RELAY_ROOMS: Number(process.env.MAX_RELAY_ROOMS ?? 150),
+  RELAY_RATE_LIMIT_CAPACITY: Number(process.env.RELAY_RATE_LIMIT_CAPACITY ?? 100),
+  RELAY_RATE_LIMIT_RATE: Number(process.env.RELAY_RATE_LIMIT_RATE ?? 100),
 } as const;
 
 export type Env = typeof env;
