@@ -1,0 +1,6 @@
+{
+  "tables": {
+    "users": ["id", "google_sub", "email", "created_at"],
+    "devices": ["id", "user_id", "name", "platform", "pubkey", "last_seen"]
+  }
+}
