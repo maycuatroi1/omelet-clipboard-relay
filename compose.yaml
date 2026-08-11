@@ -1,0 +1,56 @@
+# Step 3 establishes the topology. Step 8 wires coturn REST auth, step 11 deploys.
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omelet/clipboard-relay:dev
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://clipboard:clipboard@postgres:5432/clipboard
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      TURN_STATIC_AUTH_SECRET: ${TURN_STATIC_AUTH_SECRET:-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://127.0.0.1:3000/health');if(!r.ok)process.exit(1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clipboard}
+      POSTGRES_USER: ${POSTGRES_USER:-clipboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clipboard}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  coturn:
+    image: coturn/coturn:latest
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+    # Placeholder: starts coturn listening on 3478 udp+tcp. Step 8 adds REST API auth,
+    # long-term creds, realm, and the static auth secret from the relay.
+    command: ["-n", "--listening-port=3478", "--listening-ip=0.0.0.0"]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
