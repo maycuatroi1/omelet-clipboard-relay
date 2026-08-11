@@ -1,9 +1,10 @@
-import app from "./app.ts";
+import { fetchHandler, websocket } from "./app.ts";
 import env from "./env.ts";
 
 const server = Bun.serve({
   port: env.PORT,
-  fetch: app.fetch,
+  fetch: fetchHandler,
+  websocket,
 });
 
 // biome-ignore lint/suspicious/noConsole: server entrypoint announcing its listen port
