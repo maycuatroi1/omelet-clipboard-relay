@@ -13,6 +13,7 @@
     "lint": "biome check src test scripts",
     "test": "bun test",
     "test:contract": "bun test test/contract.test.ts",
+    "test:ice-credentials": "bun test test/ice-credentials.test.ts",
     "gen:proto": "bun run scripts/gen-proto.ts",
     "migrate": "bun run scripts/migrate.ts",
     "check:schema-allowlist": "bun run scripts/check-schema-allowlist.ts"

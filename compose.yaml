@@ -47,10 +47,28 @@ services:
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
-    # Placeholder: starts coturn listening on 3478 udp+tcp. Step 8 adds REST API auth,
-    # long-term creds, realm, and the static auth secret from the relay.
-    command: ["-n", "--listening-port=3478", "--listening-ip=0.0.0.0"]
+      - "443:443/tcp"
+    environment:
+      # MUST match the relay's TURN_STATIC_AUTH_SECRET. Both sides compute the
+      # same HMAC-SHA1 over "<expiry>:<random>" usernames (see coturn/turnserver.conf).
+      TURN_STATIC_AUTH_SECRET: ${TURN_STATIC_AUTH_SECRET:-change-me}
+    volumes:
+      # Config template; entrypoint substitutes the secret in at startup.
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf.template:ro
+      # Operator mounts real TLS certs here at deploy time (step 11):
+      #   /etc/coturn/certs/fullchain.pem and /etc/coturn/certs/privkey.pem
+      - coturn_certs:/etc/coturn/certs:ro
+    entrypoint:
+      - /bin/sh
+      - "-c"
+      # Substitute the placeholder with the env var, then exec turnserver
+      # against the rendered config. No CLI tunables - the config file owns them.
+      - |
+        sed "s|__TURN_STATIC_AUTH_SECRET__|$${TURN_STATIC_AUTH_SECRET}|g" \
+          /etc/coturn/turnserver.conf.template > /tmp/turnserver.conf
+        exec turnserver -c /tmp/turnserver.conf
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  coturn_certs:

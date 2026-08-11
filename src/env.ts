@@ -4,6 +4,7 @@ const env = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   TURN_STATIC_AUTH_SECRET: process.env.TURN_STATIC_AUTH_SECRET,
+  TURN_HOST: process.env.TURN_HOST ?? "turn.clip.omelet.tech",
   COMMIT_SHA: process.env.COMMIT_SHA,
   APP_VERSION: process.env.APP_VERSION,
 } as const;
