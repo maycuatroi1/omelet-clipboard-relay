@@ -1,0 +1,261 @@
+{
+  "$id": "https://omelet.tech/clipboard.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardV1",
+  "description": "Wire protocol for the omelet clipboard cluster. Every envelope on every channel (WS signaling, WS relay fallback, WebRTC data channel) is described here. The schema is the contract; src/proto/types.ts is generated from it by scripts/gen-proto.ts. Relay merges first, always. The data channel kinds never reach the server, so the schema plus a both-sides coverage assertion is the only thing that catches drift there.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/session.create" },
+    { "$ref": "#/$defs/session.join" },
+    { "$ref": "#/$defs/session.leave" },
+    { "$ref": "#/$defs/sdp.offer" },
+    { "$ref": "#/$defs/sdp.answer" },
+    { "$ref": "#/$defs/ice.candidate" },
+    { "$ref": "#/$defs/relay.chunk" },
+    { "$ref": "#/$defs/relay.ack" },
+    { "$ref": "#/$defs/relay.cancel" },
+    { "$ref": "#/$defs/relay.resume" },
+    { "$ref": "#/$defs/relay.error" },
+    { "$ref": "#/$defs/relay.complete" },
+    { "$ref": "#/$defs/dc.chunk" },
+    { "$ref": "#/$defs/dc.ack" },
+    { "$ref": "#/$defs/dc.cancel" },
+    { "$ref": "#/$defs/dc.resume" },
+    { "$ref": "#/$defs/dc.error" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "UUID v4. Identifies a single transfer end-to-end across signaling, relay, and data channel."
+    },
+    "base64": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "maxLength": 21848,
+      "description": "Base64-encoded ciphertext chunk. maxLength is ceil(16384 * 4 / 3) = 21848 chars (16 KiB raw). Plaintext is never on the wire; the server is never a party to the key."
+    },
+    "chunkMeta": {
+      "type": "object",
+      "description": "Optional descriptor for a transfer, carried on the seq=0 chunk only.",
+      "properties": {
+        "mime": { "type": "string" },
+        "name": { "type": "string" },
+        "size": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["mime", "name", "size"],
+      "additionalProperties": false
+    },
+    "session.create": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "Owner creates a room. Server returns the pairing code in an out-of-band reply; this message just opens the room.",
+      "properties": {
+        "kind": { "const": "session.create" },
+        "code": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "description": "Protocol version hint, optional." }
+      },
+      "required": ["kind", "code"],
+      "additionalProperties": false
+    },
+    "session.join": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "Consumer joins an existing room by code.",
+      "properties": {
+        "kind": { "const": "session.join" },
+        "code": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" }
+      },
+      "required": ["kind", "code"],
+      "additionalProperties": false
+    },
+    "session.leave": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "Either side leaves the room. Server tears down its signaling state.",
+      "properties": {
+        "kind": { "const": "session.leave" },
+        "code": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "code"],
+      "additionalProperties": false
+    },
+    "sdp.offer": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "WebRTC SDP offer from owner to consumer, relayed verbatim. The server sees the SDP; never the clipboard payload.",
+      "properties": {
+        "kind": { "const": "sdp.offer" },
+        "type": { "const": "offer" },
+        "sdp": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "type", "sdp"],
+      "additionalProperties": false
+    },
+    "sdp.answer": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "WebRTC SDP answer from consumer to owner, relayed verbatim.",
+      "properties": {
+        "kind": { "const": "sdp.answer" },
+        "type": { "const": "answer" },
+        "sdp": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "type", "sdp"],
+      "additionalProperties": false
+    },
+    "ice.candidate": {
+      "type": "object",
+      "channel": "signaling",
+      "description": "WebRTC ICE candidate (trickle ICE), relayed verbatim in either direction.",
+      "properties": {
+        "kind": { "const": "ice.candidate" },
+        "candidate": { "type": "string" },
+        "sdpMid": { "type": ["string", "null"] },
+        "sdpMLineIndex": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "required": ["kind", "candidate", "sdpMid", "sdpMLineIndex"],
+      "additionalProperties": false
+    },
+    "relay.chunk": {
+      "type": "object",
+      "channel": "relay",
+      "description": "One encrypted chunk through the WS relay fallback. Buffer lives in a Map<code, Buffer> in process RAM; deleted on ACK or 60s TTL, never on disk, never in Postgres.",
+      "properties": {
+        "kind": { "const": "relay.chunk" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 1 },
+        "bytes": { "$ref": "#/$defs/base64" },
+        "meta": { "$ref": "#/$defs/chunkMeta" }
+      },
+      "required": ["kind", "transferId", "seq", "total", "bytes"],
+      "additionalProperties": false
+    },
+    "relay.ack": {
+      "type": "object",
+      "channel": "relay",
+      "description": "Cumulative ack: receiver has every chunk up to and including seq.",
+      "properties": {
+        "kind": { "const": "relay.ack" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "seq": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["kind", "transferId", "seq"],
+      "additionalProperties": false
+    },
+    "relay.cancel": {
+      "type": "object",
+      "channel": "relay",
+      "description": "Cancel a relay transfer in flight. Server drops any buffered chunks for the transferId.",
+      "properties": {
+        "kind": { "const": "relay.cancel" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "reason": { "type": "string" }
+      },
+      "required": ["kind", "transferId", "reason"],
+      "additionalProperties": false
+    },
+    "relay.resume": {
+      "type": "object",
+      "channel": "relay",
+      "description": "Resume a relay transfer starting at fromSeq (re-send from there). Used after a reconnect.",
+      "properties": {
+        "kind": { "const": "relay.resume" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "fromSeq": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["kind", "transferId", "fromSeq"],
+      "additionalProperties": false
+    },
+    "relay.error": {
+      "type": "object",
+      "channel": "relay",
+      "description": "Relay-side error. transferId is omitted when the error is not about a specific transfer (e.g. room-full).",
+      "properties": {
+        "kind": { "const": "relay.error" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "code": { "enum": ["over-cap", "room-full", "expired", "internal"] },
+        "message": { "type": "string" }
+      },
+      "required": ["kind", "code", "message"],
+      "additionalProperties": false
+    },
+    "relay.complete": {
+      "type": "object",
+      "channel": "relay",
+      "description": "All chunks for a transfer have been sent. Lets the receiver distinguish 'paused' from 'done' when total has not yet been reached.",
+      "properties": {
+        "kind": { "const": "relay.complete" },
+        "transferId": { "$ref": "#/$defs/uuid" }
+      },
+      "required": ["kind", "transferId"],
+      "additionalProperties": false
+    },
+    "dc.chunk": {
+      "type": "object",
+      "channel": "datachannel",
+      "description": "One encrypted chunk over the WebRTC data channel (happy path). The relay never sees this kind; only the schema and the consumer-side codegen catch drift here.",
+      "properties": {
+        "kind": { "const": "dc.chunk" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 1 },
+        "bytes": { "$ref": "#/$defs/base64" },
+        "meta": { "$ref": "#/$defs/chunkMeta" }
+      },
+      "required": ["kind", "transferId", "seq", "total", "bytes"],
+      "additionalProperties": false
+    },
+    "dc.ack": {
+      "type": "object",
+      "channel": "datachannel",
+      "description": "Cumulative ack over the data channel.",
+      "properties": {
+        "kind": { "const": "dc.ack" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "seq": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["kind", "transferId", "seq"],
+      "additionalProperties": false
+    },
+    "dc.cancel": {
+      "type": "object",
+      "channel": "datachannel",
+      "description": "Cancel a data channel transfer in flight.",
+      "properties": {
+        "kind": { "const": "dc.cancel" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "reason": { "type": "string" }
+      },
+      "required": ["kind", "transferId", "reason"],
+      "additionalProperties": false
+    },
+    "dc.resume": {
+      "type": "object",
+      "channel": "datachannel",
+      "description": "Resume a data channel transfer starting at fromSeq.",
+      "properties": {
+        "kind": { "const": "dc.resume" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "fromSeq": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["kind", "transferId", "fromSeq"],
+      "additionalProperties": false
+    },
+    "dc.error": {
+      "type": "object",
+      "channel": "datachannel",
+      "description": "Data channel error. Never reaches the relay.",
+      "properties": {
+        "kind": { "const": "dc.error" },
+        "transferId": { "$ref": "#/$defs/uuid" },
+        "code": { "enum": ["over-cap", "room-full", "expired", "internal"] },
+        "message": { "type": "string" }
+      },
+      "required": ["kind", "code", "message"],
+      "additionalProperties": false
+    }
+  }
+}

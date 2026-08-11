@@ -10,8 +10,10 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check src test",
-    "test": "bun test"
+    "lint": "biome check src test scripts",
+    "test": "bun test",
+    "test:contract": "bun test test/contract.test.ts",
+    "gen:proto": "bun run scripts/gen-proto.ts"
   },
   "dependencies": {
     "hono": "^4.6.14"
