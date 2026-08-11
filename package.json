@@ -20,7 +20,8 @@
     "test:relay": "bun test test/relay/",
     "gen:proto": "bun run scripts/gen-proto.ts",
     "migrate": "bun run scripts/migrate.ts",
-    "check:schema-allowlist": "bun run scripts/check-schema-allowlist.ts"
+    "check:schema-allowlist": "bun run scripts/check-schema-allowlist.ts",
+    "check:no-payload-log": "bun run scripts/check-no-payload-log.ts"
   },
   "dependencies": {
     "arctic": "^3.7.0",

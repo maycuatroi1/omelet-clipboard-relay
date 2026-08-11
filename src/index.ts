@@ -1,5 +1,6 @@
 import { fetchHandler, websocket } from "./app.ts";
 import env from "./env.ts";
+import logger from "./observability/logger.ts";
 
 const server = Bun.serve({
   port: env.PORT,
@@ -7,7 +8,6 @@ const server = Bun.serve({
   websocket,
 });
 
-// biome-ignore lint/suspicious/noConsole: server entrypoint announcing its listen port
-console.info(`relay listening on http://localhost:${server.port}`);
+logger.info("relay listening", { port: server.port });
 
 export { server };

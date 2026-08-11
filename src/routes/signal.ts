@@ -1,4 +1,5 @@
 import type { ServerWebSocket, WebSocketHandler } from "bun";
+import logger from "../observability/logger.ts";
 import { addPeer, getOtherPeer, getRoom, removePeer } from "../pairing/rooms.ts";
 import { parseMessage } from "../proto/types.ts";
 
@@ -61,19 +62,16 @@ export const websocket: WebSocketHandler<SignalWsData> = {
     try {
       parsed = JSON.parse(data);
     } catch {
-      // biome-ignore lint/suspicious/noConsole: invalid frame dropped per spec
-      console.warn("signal: non-json frame dropped");
+      logger.warn("signal: non-json frame dropped");
       return;
     }
     const msg = parseMessage(parsed);
     if (!msg) {
-      // biome-ignore lint/suspicious/noConsole: invalid frame dropped per spec
-      console.warn("signal: invalid frame shape dropped");
+      logger.warn("signal: invalid frame shape dropped");
       return;
     }
     if (!SIGNALING_KINDS.has(msg.kind)) {
-      // biome-ignore lint/suspicious/noConsole: non-signaling kind dropped
-      console.warn(`signal: non-signaling kind '${msg.kind}' dropped`);
+      logger.warn("signal: non-signaling kind dropped", { kind: msg.kind });
       return;
     }
     const other = getOtherPeer(ws.data.code, ws);

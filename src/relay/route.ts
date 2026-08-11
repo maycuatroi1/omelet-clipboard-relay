@@ -1,4 +1,5 @@
 import type { ServerWebSocket, WebSocketHandler } from "bun";
+import logger from "../observability/logger.ts";
 import {
   type RelayAck,
   type RelayCancel,
@@ -98,6 +99,15 @@ function handleChunk(ws: RelaySocket, chunk: RelayChunk): void {
     return;
   }
   for (const p of otherPeers(ws.data.code, ws)) p.send(JSON.stringify(chunk));
+  // Debug-seam so observability tests can prove no payload byte reached the
+  // log: we log the chunk *metadata* (transferId, seq, total) only. The
+  // banned key list in src/observability/logger.ts would reject `chunk` or
+  // `bytes` as a context key; the static check bans their literal appearance.
+  logger.debug("relay chunk forwarded", {
+    transferId: chunk.transferId,
+    seq: chunk.seq,
+    total: chunk.total,
+  });
 }
 
 function handleAck(ws: RelaySocket, ack: RelayAck): void {
@@ -121,19 +131,16 @@ export const websocket: WebSocketHandler<RelayWsData> = {
     try {
       parsed = JSON.parse(data);
     } catch {
-      // biome-ignore lint/suspicious/noConsole: invalid frame dropped per spec
-      console.warn("relay: non-json frame dropped");
+      logger.warn("relay: non-json frame dropped");
       return;
     }
     const msg = parseMessage(parsed);
     if (!msg) {
-      // biome-ignore lint/suspicious/noConsole: invalid frame dropped per spec
-      console.warn("relay: invalid frame shape dropped");
+      logger.warn("relay: invalid frame shape dropped");
       return;
     }
     if (!RELAY_KINDS.has(msg.kind as RelayData["kind"])) {
-      // biome-ignore lint/suspicious/noConsole: non-relay kind dropped
-      console.warn(`relay: non-relay kind '${msg.kind}' dropped`);
+      logger.warn("relay: non-relay kind dropped", { kind: msg.kind });
       return;
     }
 

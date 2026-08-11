@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { Hono } from "hono";
 import type { AppBindings } from "../app.ts";
+import logger from "../observability/logger.ts";
 
 // TURN REST API (coturn `use-auth-secret`):
 //   username   = "<expiry-unix-seconds>:<random>"
@@ -22,8 +23,7 @@ ice.get("/", (c) => {
   // TODO(step 6): require a Bearer JWT here once the auth-token seam lands.
   // Until then, allow unauthenticated calls so the route is unit-testable
   // and emit a warning so this does not silently ship as a public oracle.
-  // biome-ignore lint/suspicious/noConsole: dev-mode warning until step 6 auth lands
-  console.warn("GET /ice served without auth (step 6 not landed yet)");
+  logger.warn("GET /ice served without auth (step 6 not landed yet)");
 
   const secret = process.env.TURN_STATIC_AUTH_SECRET;
   if (!secret) {
