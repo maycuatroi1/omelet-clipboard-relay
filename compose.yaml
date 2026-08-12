@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     image: omelet/clipboard-relay:dev
     ports:
-      - "3000:3000"
+      - "13000:3000"
     environment:
       PORT: "3000"
       LOG_LEVEL: ${LOG_LEVEL:-info}
