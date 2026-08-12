@@ -6,7 +6,7 @@ FROM oven/bun:latest AS verify
 WORKDIR /app
 
 # Install deps first so the verify layer is cacheable.
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY tsconfig.json biome.json ./
@@ -24,7 +24,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 COPY tsconfig.json ./
