@@ -30,12 +30,10 @@ RUN bun install --frozen-lockfile --production
 COPY tsconfig.json ./
 COPY src ./src
 
-# Non-root user.
-RUN addgroup --system --gid 1001 bunrel \
- && adduser --system --uid 1001 --ingroup bunrel --home /app bunrel \
- && chown -R bunrel:bunrel /app
+# The oven/bun image ships a non-root `bun` user (uid 1000). Use it.
+RUN mkdir -p /app && chown -R bun:bun /app
 
-USER bunrel
+USER bun
 
 EXPOSE 3000
 
